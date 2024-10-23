@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MessagePutRequest",
+  "description": "Schema for MessagePutRequest",
+  "type": "object",
+  "properties": {
+    "messageId": {
+      "type": "integer"
+    },
+    "messageText": {
+      "type": "string"
+    },
+    "sender": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "messageId",
+    "messageText",
+    "sender"
+  ]
+}
