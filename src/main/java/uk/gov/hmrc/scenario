@@ -1,0 +1,26 @@
+Feature: Licence Validation
+
+  Scenario Outline: Validate Licence Fields
+    Given I have a Licence object
+    When I check the value of "<jsonpath>"
+    Then it should be equal to "<value>"
+
+    Examples:
+      | jsonpath                        | value                                                |
+      | $.licenceId                     | 12345                                                |
+      | $.holderName                    | John Doe                                             |
+      | $.startDate                     | date:2023-01-01:yyyy-MM-dd                            |
+      | $.expiryDate                    | date:2024-01-01:yyyy-MM-dd                            |
+      | $.licenceType                   | Full                                                 |
+      | $.restrictions                  |                                                      |
+      | $.restrictions[0]               | No heavy machinery                                   |
+      | $.restrictions[1]               | Daytime only                                         |
+      | $.conditions                    |                                                      |
+      | $.conditions[0]                 | Must wear safety glasses                             |
+      | $.conditions[1]                 | Must attend annual training                          |
+      | $.conditions[2]                 | Must report any incidents immediately                |
+      | $.issuingAuthority              | DMV                                                  |
+      | $.status                        | Active                                               |
+      | $.endorsements                  |                                                      |
+      | $.endorsements[0]               | Class A                                              |
+      | $.endorsements[1]               | Class B                                              |
