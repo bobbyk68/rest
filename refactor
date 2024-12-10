@@ -1,0 +1,40 @@
+@Override
+public List<LicenceUpdateError> validate(Licence licence, ReferenceService.ReferenceData referenceData) {
+    List<LicenceUpdateError> errors = new ArrayList<>();
+
+    IntStream.range(0, licence.getControllingLines().size())
+            .forEach(licenceLineIndex -> {
+                ControllingLine controllingLine = licence.getControllingLines().get(licenceLineIndex);
+                validateCommodities(controllingLine, licence, licenceLineIndex, errors);
+            });
+
+    return errors;
+}
+
+private void validateCommodities(ControllingLine controllingLine, Licence licence, int licenceLineIndex, List<LicenceUpdateError> errors) {
+    if (!LICENCE_USAGE_EXPORT.equals(licence.getUsage())) {
+        return;
+    }
+
+    IntStream.range(0, controllingLine.getCommodities().size())
+            .forEach(commodityIndex -> {
+                Commodity commodity = controllingLine.getCommodities().get(commodityIndex);
+                if (!isValidCommodity(controllingLine, commodity)) {
+                    errors.add(createError(licenceLineIndex, commodityIndex));
+                }
+            });
+}
+
+private boolean isValidCommodity(ControllingLine controllingLine, Commodity commodity) {
+    return controllingLine.getCommodityGroup() != null &&
+            commodity.getCode() != null &&
+            isValidCommodityFormat(commodity.getCode());
+}
+
+private LicenceUpdateError createError(int licenceLineIndex, int commodityIndex) {
+    return new LicenceUpdateError.Builder()
+            .message(COMMODITY_CODE_ERROR_MESSAGE)
+            .code(COMMODITY_CODE_ERROR_CODE)
+            .path(String.format(COMMODITY_CODE_ERROR_PATH, licenceLineIndex, commodityIndex))
+            .build();
+}
