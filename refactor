@@ -1,40 +1,24 @@
-@Override
-public List<LicenceUpdateError> validate(Licence licence, ReferenceService.ReferenceData referenceData) {
-    List<LicenceUpdateError> errors = new ArrayList<>();
+int licenceLineIndex = 1;
 
-    IntStream.range(0, licence.getControllingLines().size())
-            .forEach(licenceLineIndex -> {
-                ControllingLine controllingLine = licence.getControllingLines().get(licenceLineIndex);
-                validateCommodities(controllingLine, licence, licenceLineIndex, errors);
-            });
-
-    return errors;
-}
-
-private void validateCommodities(ControllingLine controllingLine, Licence licence, int licenceLineIndex, List<LicenceUpdateError> errors) {
-    if (!LICENCE_USAGE_EXPORT.equals(licence.getUsage())) {
-        return;
-    }
-
-    IntStream.range(0, controllingLine.getCommodities().size())
-            .forEach(commodityIndex -> {
-                Commodity commodity = controllingLine.getCommodities().get(commodityIndex);
-                if (!isValidCommodity(controllingLine, commodity)) {
-                    errors.add(createError(licenceLineIndex, commodityIndex));
+for (ControllingLine existingCtrlLine : existingLicence.getControllingLines()) {
+    incomingLicence.getControllingLines().stream()
+        .filter(incomingCtrlLineItem -> incomingCtrlLineItem.getLineNumber().equals(existingCtrlLine.getLineNumber()))
+        .findFirst()
+        .ifPresent(incomingCtrlLine -> {
+            if (incomingCtrlLine.getIssuedQuantity().getValue() != null) {
+                BigDecimal incomingIssuedQty = incomingCtrlLine.getIssuedQuantity().getValue();
+                double existingTotalReservedQty = RunningTotalsSummaryFunctions.calculateQuantityReserved(existingCtrlLine.getRunningTotals()).doubleValue();
+                if (incomingIssuedQty.doubleValue() < existingTotalReservedQty) {
+                    errors.add(LicenceUpdateError.builder()
+                        .code(ERROR_CODE_24)
+                        .message(ERROR_TEXT_24)
+                        .path(String.format(CONTROL_LINE_PATH, licenceLineIndex))
+                        .build());
+                    log.error(String.format(
+                        "Rejecting licence %s because the issued quantity %s for the controlling line record LicenceLine[%s] is below reserved quantity %s",
+                        incomingLicence.getLicenceReference(), incomingIssuedQty, licenceLineIndex, existingTotalReservedQty));
                 }
-            });
-}
-
-private boolean isValidCommodity(ControllingLine controllingLine, Commodity commodity) {
-    return controllingLine.getCommodityGroup() != null &&
-            commodity.getCode() != null &&
-            isValidCommodityFormat(commodity.getCode());
-}
-
-private LicenceUpdateError createError(int licenceLineIndex, int commodityIndex) {
-    return new LicenceUpdateError.Builder()
-            .message(COMMODITY_CODE_ERROR_MESSAGE)
-            .code(COMMODITY_CODE_ERROR_CODE)
-            .path(String.format(COMMODITY_CODE_ERROR_PATH, licenceLineIndex, commodityIndex))
-            .build();
+            }
+        });
+    licenceLineIndex++;
 }
