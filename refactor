@@ -1,24 +1,30 @@
-int licenceLineIndex = 1;
+import java.util.regex.Pattern;
 
-for (ControllingLine existingCtrlLine : existingLicence.getControllingLines()) {
-    incomingLicence.getControllingLines().stream()
-        .filter(incomingCtrlLineItem -> incomingCtrlLineItem.getLineNumber().equals(existingCtrlLine.getLineNumber()))
-        .findFirst()
-        .ifPresent(incomingCtrlLine -> {
-            if (incomingCtrlLine.getIssuedQuantity().getValue() != null) {
-                BigDecimal incomingIssuedQty = incomingCtrlLine.getIssuedQuantity().getValue();
-                double existingTotalReservedQty = RunningTotalsSummaryFunctions.calculateQuantityReserved(existingCtrlLine.getRunningTotals()).doubleValue();
-                if (incomingIssuedQty.doubleValue() < existingTotalReservedQty) {
-                    errors.add(LicenceUpdateError.builder()
-                        .code(ERROR_CODE_24)
-                        .message(ERROR_TEXT_24)
-                        .path(String.format(CONTROL_LINE_PATH, licenceLineIndex))
-                        .build());
-                    log.error(String.format(
-                        "Rejecting licence %s because the issued quantity %s for the controlling line record LicenceLine[%s] is below reserved quantity %s",
-                        incomingLicence.getLicenceReference(), incomingIssuedQty, licenceLineIndex, existingTotalReservedQty));
-                }
-            }
-        });
-    licenceLineIndex++;
+public class CommodityCodeValidator {
+
+    public static boolean isValidCommodityCode(String commodityCode) {
+        // Define the regular expression for valid formats
+        String regex = "^(\\d{4}|\\d{6}|\\d{8}|\\d{8}\\s\\d{2})$";
+        // Compile the pattern
+        Pattern pattern = Pattern.compile(regex);
+        // Match the string against the pattern
+        return pattern.matcher(commodityCode).matches();
+    }
+
+    public static void main(String[] args) {
+        // Test cases
+        String[] testCodes = {
+            "1234",      // 4 digits
+            "123456",    // 6 digits
+            "12345678",  // 8 digits
+            "12345678 12", // 8 digits + space + 2 digits
+            "123",       // Invalid
+            "123456789", // Invalid
+            "12345678 1" // Invalid
+        };
+
+        for (String code : testCodes) {
+            System.out.println("Commodity Code: " + code + " is valid: " + isValidCommodityCode(code));
+        }
+    }
 }
