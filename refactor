@@ -1,30 +1,85 @@
-import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.stereotype.Component;
 
-public class CommodityCodeValidator {
+import javax.jms.JMSException;
+import javax.jms.TextMessage;
+import java.io.FileWriter;
+import java.io.IOException;
 
-    public static boolean isValidCommodityCode(String commodityCode) {
-        // Define the regular expression for valid formats
-        String regex = "^(\\d{4}|\\d{6}|\\d{8}|\\d{8}\\s\\d{2})$";
-        // Compile the pattern
-        Pattern pattern = Pattern.compile(regex);
-        // Match the string against the pattern
-        return pattern.matcher(commodityCode).matches();
+@Component
+public class MessageWriter {
+
+    @Autowired
+    private JmsTemplate jmsTemplate;
+
+    @Autowired
+    private JmsTemplate dlqTemplate;
+
+    @Autowired
+    private RetryTemplate retryTemplate;
+
+    @Value("${message.destination}")
+    private String destination;
+
+    @Value("${message.output}")
+    private String output;
+
+    @Value("${jms.dlq.destination}")
+    private String dlqDestination;
+
+    public void writeMessage(String message) {
+        if ("jms".equalsIgnoreCase(output)) {
+            sendMessageToJmsQueue(message);
+        } else if ("file".equalsIgnoreCase(output)) {
+            writeMessageToFile(message);
+        } else {
+            throw new IllegalArgumentException("Invalid output type specified in YML: " + output);
+        }
     }
 
-    public static void main(String[] args) {
-        // Test cases
-        String[] testCodes = {
-            "1234",      // 4 digits
-            "123456",    // 6 digits
-            "12345678",  // 8 digits
-            "12345678 12", // 8 digits + space + 2 digits
-            "123",       // Invalid
-            "123456789", // Invalid
-            "12345678 1" // Invalid
-        };
+    private void sendMessageToJmsQueue(String message) {
+        retryTemplate.execute(context -> {
+            jmsTemplate.send(destination, session -> {
+                TextMessage textMessage = session.createTextMessage(message);
+                return textMessage;
+            });
+            return null;
+        }, context -> {
+            // Recovery callback (optional)
+            System.err.println("Failed to send message after multiple retries: " + context.getLastThrowable().getMessage());
+            System.err.println("Sending message to DLQ: " + message);
 
-        for (String code : testCodes) {
-            System.out.println("Commodity Code: " + code + " is valid: " + isValidCommodityCode(code));
+            dlqTemplate.send(dlqDestination, session -> {
+                TextMessage textMessage = session.createTextMessage(message);
+                textMessage.setStringProperty("originalDestination", destination);
+                textMessage.setStringProperty("errorMessage", context.getLastThrowable().getMessage());
+                return textMessage;
+            });
+            return null;
+        });
+    }
+
+    private void writeMessageToFile(String message) {
+        try (FileWriter fileWriter = new FileWriter(destination)) {
+            fileWriter.write(message);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write message to file", e);
         }
+    }
+
+    // Getters and setters for testing purposes
+    public void setOutput(String output) {
+        this.output = output;
+    }
+
+    public void setDestination(String destination) {
+        this.destination = destination;
+    }
+
+    public void setDlqDestination(String dlqDestination) {
+        this.dlqDestination = dlqDestination;
     }
 }
