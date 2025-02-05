@@ -1,85 +1,22 @@
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jms.core.JmsTemplate;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.stereotype.Component;
+import java.time.*;
 
-import javax.jms.JMSException;
-import javax.jms.TextMessage;
-import java.io.FileWriter;
-import java.io.IOException;
+public class TimezoneConversion {
+    public static void main(String[] args) {
+        // Step 1: Create LocalDateTime for 1st April 2024, 11:00 AM (UK Time)
+        LocalDateTime localDateTime = LocalDateTime.of(2024, 4, 1, 11, 0);
 
-@Component
-public class MessageWriter {
+        // Step 2: Associate with UK Time Zone (BST in April)
+        ZonedDateTime londonTime = localDateTime.atZone(ZoneId.of("Europe/London"));
 
-    @Autowired
-    private JmsTemplate jmsTemplate;
+        // Step 3: Convert to UTC
+        ZonedDateTime utcTime = londonTime.withZoneSameInstant(ZoneOffset.UTC);
 
-    @Autowired
-    private JmsTemplate dlqTemplate;
+        // Step 4: Convert ZonedDateTime (UTC) to LocalDateTime
+        LocalDateTime utcLocalDateTime = utcTime.toLocalDateTime();
 
-    @Autowired
-    private RetryTemplate retryTemplate;
-
-    @Value("${message.destination}")
-    private String destination;
-
-    @Value("${message.output}")
-    private String output;
-
-    @Value("${jms.dlq.destination}")
-    private String dlqDestination;
-
-    public void writeMessage(String message) {
-        if ("jms".equalsIgnoreCase(output)) {
-            sendMessageToJmsQueue(message);
-        } else if ("file".equalsIgnoreCase(output)) {
-            writeMessageToFile(message);
-        } else {
-            throw new IllegalArgumentException("Invalid output type specified in YML: " + output);
-        }
-    }
-
-    private void sendMessageToJmsQueue(String message) {
-        retryTemplate.execute(context -> {
-            jmsTemplate.send(destination, session -> {
-                TextMessage textMessage = session.createTextMessage(message);
-                return textMessage;
-            });
-            return null;
-        }, context -> {
-            // Recovery callback (optional)
-            System.err.println("Failed to send message after multiple retries: " + context.getLastThrowable().getMessage());
-            System.err.println("Sending message to DLQ: " + message);
-
-            dlqTemplate.send(dlqDestination, session -> {
-                TextMessage textMessage = session.createTextMessage(message);
-                textMessage.setStringProperty("originalDestination", destination);
-                textMessage.setStringProperty("errorMessage", context.getLastThrowable().getMessage());
-                return textMessage;
-            });
-            return null;
-        });
-    }
-
-    private void writeMessageToFile(String message) {
-        try (FileWriter fileWriter = new FileWriter(destination)) {
-            fileWriter.write(message);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to write message to file", e);
-        }
-    }
-
-    // Getters and setters for testing purposes
-    public void setOutput(String output) {
-        this.output = output;
-    }
-
-    public void setDestination(String destination) {
-        this.destination = destination;
-    }
-
-    public void setDlqDestination(String dlqDestination) {
-        this.dlqDestination = dlqDestination;
+        // Print results
+        System.out.println("London Time (BST): " + londonTime);
+        System.out.println("UTC ZonedDateTime: " + utcTime);
+        System.out.println("UTC LocalDateTime: " + utcLocalDateTime);
     }
 }
