@@ -1,0 +1,120 @@
+@When("I submit an update request with the following changes:")
+public void submitLicenseUpdate(DataTable changes) {
+    License updatedLicense = new License(originalLicense);
+
+    for (Map<String, String> row : changes.asMaps(String.class, String.class)) {
+        String field = row.get("field");
+        String newValue = row.get("new_value");
+
+        if ("controllingLines".equals(field)) {
+            updatedLicense.setControllingLines(parseControllingLines(newValue));
+        } else if (fieldSetters.containsKey(field)) {
+            fieldSetters.get(field).accept(updatedLicense, newValue);
+        }
+    }
+
+    // Convert License to SOAP Request
+    String soapRequest = soapService.buildSoapRequest(updatedLicense);
+    soapService.submitRequest(soapRequest);
+}
+
+@Then("the updated License record for {string} should match the expected values:")
+public void verifyUpdatedLicense(String licenseRef, DataTable expectedChanges) {
+    License dbLicense = licenseRepository.findById(licenseRef);
+
+    for (Map<String, String> row : expectedChanges.asMaps(String.class, String.class)) {
+        String field = row.get("field");
+        String expectedValue = row.get("expected_value");
+
+        if (fieldGetters.containsKey(field)) {
+            Object actualValue = fieldGetters.get(field).apply(dbLicense);
+
+            if (actualValue instanceof List) {
+                verifyListField(field, (List<?>) actualValue, expectedValue);
+            } else {
+                Object convertedExpectedValue = convertValue(expectedValue, actualValue.getClass());
+                Assertions.assertEquals(convertedExpectedValue, actualValue, 
+                    "Mismatch in field: " + field);
+            }
+        } else {
+            throw new IllegalArgumentException("Field not found in database: " + field);
+        }
+    }
+}
+
+private void verifyListField(String field, List<?> actualList, String expectedValue) {
+    if ("controllingLines".equals(field)) {
+        List<ControllingLine> expectedLines = parseControllingLines(expectedValue);
+        Assertions.assertEquals(expectedLines.size(), actualList.size(), 
+            "Mismatch in number of controllingLines");
+
+        for (int i = 0; i < expectedLines.size(); i++) {
+            ControllingLine expected = expectedLines.get(i);
+            ControllingLine actual = (ControllingLine) actualList.get(i);
+
+            Assertions.assertEquals(expected.getId(), actual.getId(), 
+                "Mismatch in ControllingLine ID at index " + i);
+            Assertions.assertEquals(expected.getName(), actual.getName(), 
+                "Mismatch in ControllingLine Name at index " + i);
+            Assertions.assertEquals(expected.getGoodsDescription(), actual.getGoodsDescription(), 
+                "Mismatch in ControllingLine GoodsDescription at index " + i);
+        }
+    } else {
+        throw new UnsupportedOperationException("List verification not implemented for field: " + field);
+    }
+}
+
+private List<ControllingLine> parseControllingLines(String value) {
+    List<ControllingLine> lines = new ArrayList<>();
+
+    // Split into individual ControllingLines
+    String[] entries = value.split("(?<!\\\\),"); // Split on commas that are NOT escaped
+
+    for (String entry : entries) {
+        String[] parts = entry.split("(?<!\\\\):"); // Split on colons that are NOT escaped
+
+        if (parts.length < 3) {
+            throw new IllegalArgumentException("Invalid ControllingLine format: " + entry);
+        }
+
+        ControllingLine line = new ControllingLine();
+        line.setId(Integer.parseInt(parts[0].trim()));
+        line.setName(parts[1].trim());
+        line.setGoodsDescription(parts[2].trim().replace("\\,", ",")); // Unescape commas
+
+        lines.add(line);
+    }
+
+    return lines;
+}
+
+private Object convertValue(String value, Class<?> targetType) {
+    if (targetType.equals(LocalDate.class)) {
+        return LocalDate.parse(value);
+    } else if (targetType.equals(Boolean.class) || targetType.equals(boolean.class)) {
+        return Boolean.parseBoolean(value);
+    } else if (targetType.equals(Integer.class) || targetType.equals(int.class)) {
+        return Integer.parseInt(value);
+    } else {
+        return value; // Default to String
+    }
+}
+
+private static final Map<String, Function<License, Object>> fieldGetters = new HashMap<>();
+
+static {
+    fieldGetters.put("expiry", License::getExpiry);
+    fieldGetters.put("active", License::isActive);
+    fieldGetters.put("name", License::getName);
+    fieldGetters.put("id", License::getId);
+    fieldGetters.put("controllingLines", License::getControllingLines); // Handle list
+}
+
+private static final Map<String, BiConsumer<License, String>> fieldSetters = new HashMap<>();
+
+static {
+    fieldSetters.put("expiry", (license, value) -> license.setExpiry(LocalDate.parse(value)));
+    fieldSetters.put("active", (license, value) -> license.setActive(Boolean.parseBoolean(value)));
+    fieldSetters.put("name", (license, value) -> license.setName(value));
+}
+
