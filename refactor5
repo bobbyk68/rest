@@ -1,0 +1,21 @@
+@Then("the updated License record for {string} should match the expected values:")
+public void verifyUpdatedLicense(String licenseId, DataTable expectedChanges) {
+    // Retrieve the latest License record from the database using the provided ID
+    License dbLicense = licenseRepository.findById(licenseId);
+
+    for (Map<String, String> row : expectedChanges.asMaps(String.class, String.class)) {
+        String field = row.get("field");
+        String expectedValue = row.get("expected_value");
+
+        if (fieldGetters.containsKey(field)) {
+            Object actualValue = fieldGetters.get(field).apply(dbLicense);
+            Object convertedExpectedValue = convertValue(expectedValue, actualValue.getClass());
+
+            Assertions.assertEquals(convertedExpectedValue, actualValue, 
+                "Mismatch in field: " + field);
+        } else {
+            throw new IllegalArgumentException("Field not found in database: " + field);
+        }
+    }
+}
+
