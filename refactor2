@@ -1,0 +1,28 @@
+private static final Map<String, BiConsumer<License, String>> fieldSetters = new HashMap<>();
+
+static {
+    fieldSetters.put("expiry", (license, value) -> license.setExpiry(LocalDate.parse(value)));
+    fieldSetters.put("active", (license, value) -> license.setActive(Boolean.parseBoolean(value)));
+    fieldSetters.put("name", (license, value) -> license.setName(value));
+}
+
+@When("I submit an update request with the following changes:")
+public void submitLicenseUpdate(DataTable changes) {
+    License updatedLicense = new License(originalLicense);
+
+    for (Map<String, String> row : changes.asMaps(String.class, String.class)) {
+        String field = row.get("field");
+        String newValue = row.get("new_value");
+
+        if (fieldSetters.containsKey(field)) {
+            fieldSetters.get(field).accept(updatedLicense, newValue);
+        } else {
+            throw new IllegalArgumentException("Unsupported field: " + field);
+        }
+    }
+
+    // Convert License to SOAP Request
+    String soapRequest = soapService.buildSoapRequest(updatedLicense);
+    soapService.submitRequest(soapRequest);
+}
+
