@@ -1,0 +1,11 @@
+@Then("the updated License record in the database should match the expected values")
+public void verifyUpdatedLicense() {
+    License dbLicense = licenseRepository.findById(licenseId);
+
+    // Compare field by field
+    Assertions.assertEquals(originalLicense.getExpiry(), dbLicense.getExpiry(), "Expiry date mismatch");
+    Assertions.assertEquals(originalLicense.isActive(), dbLicense.isActive(), "Active flag mismatch");
+    
+    // If more fields are added, loop through them dynamically
+}
+
