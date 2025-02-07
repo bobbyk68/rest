@@ -1,0 +1,10 @@
+Feature: Update License and Verify Changes
+
+  Scenario: Submit SOAP request and validate database update
+    Given an existing License in the database
+    When I submit an update request with the following changes:
+      | field     | new_value  |
+      | expiry    | 2026-01-01 |
+      | active    | false      |
+    Then the updated License record in the database should match the expected values
+
