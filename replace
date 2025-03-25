@@ -1,0 +1,30 @@
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+
+public class PureJavaXmlTemplate {
+
+    public static String processTemplate(String templatePath, Map<String, String> data) throws IOException {
+        String template = new String(Files.readAllBytes(Paths.get(templatePath)));
+
+        for (Map.Entry<String, String> entry : data.entrySet()) {
+            String placeholder = "{{" + entry.getKey() + "}}";
+            template = template.replace(placeholder, entry.getValue());
+        }
+
+        return template;
+    }
+
+    public static void main(String[] args) throws IOException {
+        String templatePath = "src/main/resources/template.xml"; // Adjust path
+        Map<String, String> data = new HashMap<>();
+        data.put("userName", "Bobby");
+        data.put("userId", "123");
+        data.put("status", "Active");
+
+        String result = processTemplate(templatePath, data);
+        System.out.println(result);
+    }
+}
