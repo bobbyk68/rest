@@ -1,0 +1,52 @@
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.WriteListener;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+public class ByteResponseWrapper extends HttpServletResponseWrapper {
+
+    private final ByteArrayOutputStream capture;
+    private ServletOutputStream output;
+    private PrintWriter writer;
+
+    public ByteResponseWrapper(HttpServletResponse response) {
+        super(response);
+        capture = new ByteArrayOutputStream();
+    }
+
+    @Override
+    public ServletOutputStream getOutputStream() {
+        if (output == null) {
+            output = new ServletOutputStream() {
+                @Override
+                public void write(int b) {
+                    capture.write(b);
+                }
+
+                @Override
+                public boolean isReady() { return true; }
+
+                @Override
+                public void setWriteListener(WriteListener listener) {}
+            };
+        }
+        return output;
+    }
+
+    @Override
+    public PrintWriter getWriter() {
+        if (writer == null) {
+            writer = new PrintWriter(capture, true);
+        }
+        return writer;
+    }
+
+    public byte[] getCapturedBytes() {
+        return capture.toByteArray();
+    }
+}
+
