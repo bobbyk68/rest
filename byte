@@ -1,52 +1,108 @@
-import jakarta.servlet.ServletOutputStream;
-import jakarta.servlet.WriteListener;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpServletResponseWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional; // Assuming based on image
+import org.springframework.ws.context.MessageContext; // Not needed for this specific way, but often present
+import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
+import org.springframework.ws.server.endpoint.annotation.RequestPayload;
+import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
+// --- Imports for TransportContext ---
+import org.springframework.ws.transport.context.TransportContext;
+import org.springframework.ws.transport.context.TransportContextHolder;
+import org.springframework.ws.transport.http.HttpServletConnection;
+import javax.servlet.http.HttpServletRequest;
+// --- Other necessary imports ---
+import javax.xml.bind.JAXBElement;
+// import your.package.RequestAuthorizationDetails; // Replace with actual type
+// import your.package.RequestAuthorizationDetailsResponse; // Replace with actual type
+// import your.package.ProjectConstants; // Replace with actual type
+// import your.package.util.Log; // Replace with actual logger if needed
+// import your.package.util.MDCLoggingUtils; // Replace if needed
+// import your.package.util.XmlUtil; // Replace if needed
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
+// Assuming Log is SLF4j or similar
+// private static final Logger log = LoggerFactory.getLogger(InternalLicenseManagementServiceEndpoint.class); // Define logger if Log isn't static
 
-public class ByteResponseWrapper extends HttpServletResponseWrapper {
+public class InternalLicenseManagementServiceEndpoint {
 
-    private final ByteArrayOutputStream capture;
-    private ServletOutputStream output;
-    private PrintWriter writer;
+    // Assuming dependencies like xmlUtil, dateConverter are injected or available
+    // private XmlUtil xmlUtil;
+    // private DateConverter dateConverter;
 
-    public ByteResponseWrapper(HttpServletResponse response) {
-        super(response);
-        capture = new ByteArrayOutputStream();
-    }
+    // @Autowired or constructor injection for dependencies
 
-    @Override
-    public ServletOutputStream getOutputStream() {
-        if (output == null) {
-            output = new ServletOutputStream() {
-                @Override
-                public void write(int b) {
-                    capture.write(b);
+    @Transactional(/*...propagation based on image...*/)
+    @PayloadRoot(namespace = ProjectConstants.NAMESPACE_URI,
+                 localPart = ProjectConstants.REQUEST_AUTHORIZATION_DETAILS_OPERATION)
+    @ResponsePayload
+    // @EnableMDCLogging(...) // Assuming this annotation exists
+    public RequestAuthorizationDetailsResponse requestAuthorizationDetails(
+            @RequestPayload JAXBElement<RequestAuthorizationDetails> source) {
+
+        // Define logger if Log isn't static, e.g.:
+        final Logger log = LoggerFactory.getLogger(InternalLicenseManagementServiceEndpoint.class);
+
+        try {
+            // Log payload (as in original code)
+            log.info("requestAuthorisationDetails request: {}", /* xmlUtil.payloadAsXML(source) */ "payload..."); // Adapt logging
+
+            // --- Access HTTP Headers using TransportContextHolder ---
+            TransportContext context = TransportContextHolder.getTransportContext();
+            if (context != null && context.getConnection() instanceof HttpServletConnection) {
+                HttpServletRequest httpRequest = ((HttpServletConnection) context.getConnection()).getHttpServletRequest();
+
+                log.info("--- Begin HTTP Transport Headers (via TransportContextHolder) ---");
+                Enumeration<String> headerNames = httpRequest.getHeaderNames();
+                if (headerNames != null) {
+                    while (headerNames.hasMoreElements()) {
+                        String headerName = headerNames.nextElement();
+                        String headerValue = httpRequest.getHeader(headerName);
+                        log.info("  HTTP Header: {} = {}", headerName, headerValue);
+                        // You can now use these headerName/headerValue variables
+                        // Example: Find a specific header
+                        if ("Authorization".equalsIgnoreCase(headerName)) {
+                            log.info("    Found Authorization header.");
+                            // process authorizationHeaderValue...
+                        }
+                    }
+                } else {
+                    log.info("  (No HTTP headers found)");
                 }
+                log.info("--- End HTTP Transport Headers ---");
 
-                @Override
-                public boolean isReady() { return true; }
+            } else {
+                log.warn("Could not obtain HttpServletRequest from TransportContext. HTTP Headers unavailable via this method.");
+            }
+            // --- End Access HTTP Headers ---
 
-                @Override
-                public void setWriteListener(WriteListener listener) {}
-            };
+
+            // Existing logic from the image (adapt as needed)
+            // MDCLoggingUtils.setHeaderFieldsInLogs(); // Might be redundant if you log headers above
+            // AuthorizationDetailRequest authorizationDetailRequest = source.getValue().getAuthorizationDetailRequest();
+            // setMDCKeyValue(...)
+            // DateTimeFormatter formatter = ...
+            // String referenceDate = ...
+            // log.info(String.format(" requestAuthorizationDetails : received , Document_Reference : %s" , ... ));
+
+            // ... rest of your business logic ...
+
+            // Create and return response
+            // RequestAuthorizationDetailsResponse response = new RequestAuthorizationDetailsResponse();
+            // ... populate response ...
+            // return response;
+            throw new UnsupportedOperationException("Response creation not implemented"); // Placeholder
+
+
+        } catch (Exception e) {
+             log.error("Error processing requestAuthorizationDetails", e);
+             // Handle error, create fault response etc.
+             throw new RuntimeException("Error processing request", e); // Or specific fault
+        } finally {
+            // Clean up TransportContextHolder if necessary, although usually managed by the framework
+            // TransportContextHolder.removeTransportContext(); // Typically not needed here
         }
-        return output;
     }
-
-    @Override
-    public PrintWriter getWriter() {
-        if (writer == null) {
-            writer = new PrintWriter(capture, true);
-        }
-        return writer;
-    }
-
-    public byte[] getCapturedBytes() {
-        return capture.toByteArray();
-    }
+    // Other methods...
 }
-
