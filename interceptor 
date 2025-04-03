@@ -1,0 +1,48 @@
+import org.springframework.ws.context.MessageContext;
+import org.springframework.ws.server.EndpointInterceptor;
+import org.springframework.ws.soap.SoapMessage;
+import org.springframework.ws.WebServiceMessage;
+
+import javax.xml.transform.Source;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map;
+
+public class LoggingInterceptor implements EndpointInterceptor {
+
+    @Override
+    public boolean handleRequest(MessageContext messageContext, Object endpoint) throws IOException {
+        WebServiceMessage request = messageContext.getRequest();
+
+        if (request instanceof SoapMessage) {
+            SoapMessage soapMessage = (SoapMessage) request;
+
+            // Log HTTP Headers
+            Map<String, Object> headers = messageContext.getPropertyNames();
+            for (String name : headers.keySet()) {
+                System.out.println("Header: " + name + " = " + messageContext.getProperty(name));
+            }
+
+            // Optionally: Print the SOAP payload
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            soapMessage.writeTo(out);
+            System.out.println("SOAP Request Payload: " + out.toString());
+        }
+
+        return true; // Continue processing
+    }
+
+    @Override
+    public boolean handleResponse(MessageContext messageContext, Object endpoint) {
+        return true;
+    }
+
+    @Override
+    public boolean handleFault(MessageContext messageContext, Object endpoint) {
+        return true;
+    }
+
+    @Override
+    public void afterCompletion(MessageContext messageContext, Object endpoint, Exception ex) {}
+}
