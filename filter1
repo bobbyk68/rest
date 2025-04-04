@@ -1,35 +1,20 @@
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
-import org.springframework.stereotype.Component;
-
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-
 @Component
-public class SoapLoggingFilter implements Filter {
+@Order(Ordered.HIGHEST_PRECEDENCE) // Ensure it runs early
+public class MdcCaptureTestFilter extends OncePerRequestFilter {
+
+    public static final Map<String, String> MDC_VALUES = new ConcurrentHashMap<>();
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
 
-        // Wrap the response to capture output
-        HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-        CharResponseWrapper responseWrapper = new CharResponseWrapper(httpServletResponse);
-
-        chain.doFilter(request, responseWrapper); // proceed with chain
-
-        // Extract the response body
-        String responseBody = responseWrapper.toString();
-
-        // Log the full response body (includes SOAP Envelope)
-        System.out.println("==== SOAP Response ====");
-        System.out.println(responseBody);
-        System.out.println("=======================");
-
-        // Copy content back to actual response
-        PrintWriter out = httpServletResponse.getWriter();
-        out.write(responseBody);
-        out.flush();
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            MDC_VALUES.put("CONVERSATION", MDC.get("CONVERSATION_ID"));
+            MDC_VALUES.put("REFERENCE", MDC.get("DECLARATION_ID"));
+        }
     }
 }
-
