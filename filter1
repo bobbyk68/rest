@@ -18,3 +18,19 @@ public class MdcCaptureTestFilter extends OncePerRequestFilter {
         }
     }
 }
+
+
+@WebMvcTest(LicenceUpdateController.class)
+@Import(MdcCaptureTestFilter.class) // Only includes it in tests
+class LicenceUpdateControllerTest {
+    ...
+}
+
+mockMvc.perform(put(URL_TEMPLATE)
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(headers)
+        .content(licenseJson))
+    .andExpect(status().isOk());
+
+assertThat(MdcCaptureTestFilter.MDC_VALUES.get("CONVERSATION")).isEqualTo("CONVERSATION");
+assertThat(MdcCaptureTestFilter.MDC_VALUES.get("REFERENCE")).isEqualTo("REFERENCE");
