@@ -1,0 +1,22 @@
+public String showQuantityError(boolean isLate, Double totalQtyReserved, BigDecimal totalQtyIssued, licence) { // Assuming licence type
+    // Calculate totalQuantity first as it's needed for one of the conditions
+    // Assuming reservationDTOs is available in this scope
+    Double totalNewQuantity = getTotalUpdatedQuantities(reservationDTOs);
+    double totalQuantity = totalQtyReserved + totalNewQuantity;
+
+    // Combine the conditions that should result in returning an empty string
+    boolean shouldReturnEmpty = isQuantityUpdateAllowed(totalQtyIssued, licence.getStatus()) ||
+                                BigDecimal.valueOf(totalQuantity).compareTo(totalQtyIssued) <= 0;
+
+    if (shouldReturnEmpty) {
+        return StringUtils.EMPTY; // <-- Now returned only once
+    } else if (isLate) {
+        // These are the remaining cases after not returning empty
+        // Note: Based on the image text, it seems VALIDATION_MESSAGE_LICENCE_4 is returned when isLate is true,
+        // and VALIDATION_MESSAGE_LATE_2 when it is false. This might seem counter-intuitive from the names,
+        // but the code structure follows the image.
+        return CodeListConstants.VALIDATION_MESSAGE_LICENCE_4;
+    } else {
+        return CodeListConstants.VALIDATION_MESSAGE_LATE_2;
+    }
+}
