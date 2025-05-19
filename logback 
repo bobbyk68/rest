@@ -1,0 +1,44 @@
+<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+        <providers>
+            <!-- Include only necessary fields -->
+            <timestamp/>
+
+            <loggerName>
+                <fieldName>log.logger</fieldName>
+            </loggerName>
+
+            <threadName>
+                <fieldName>process.thread.name</fieldName>
+            </threadName>
+
+            <message/>
+
+            <mdc>
+                <excludeMdcKeyName>ldjobName</excludeMdcKeyName>
+                <excludeMdcKeyName>file.name</excludeMdcKeyName>
+                <excludeMdcKeyName>jobName</excludeMdcKeyName>
+                <excludeMdcKeyName>Summary_Record</excludeMdcKeyName>
+                <excludeMdcKeyName>Usage_Type</excludeMdcKeyName>
+                <excludeMdcKeyName>end date</excludeMdcKeyName>
+                <excludeMdcKeyName>Licence_Status</excludeMdcKeyName>
+                <excludeMdcKeyName>Licence_Flow</excludeMdcKeyName>
+                <excludeMdcKeyName>Usage_FLOW</excludeMdcKeyName>
+                <excludeMdcKeyName>LICENCE_FILE_AVAILABLE_TO_PROCESS_CHECK</excludeMdcKeyName>
+            </mdc>
+        </providers>
+        <prettyPrint>true</prettyPrint>
+    </encoder>
+</appender>
+
+<appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+    <appender-ref ref="CONSOLE" />
+    <queueSize>256</queueSize>
+    <discardingThreshold>0</discardingThreshold>
+    <includeCallerData>true</includeCallerData>
+    <neverBlock>false</neverBlock>
+</appender>
+
+<root level="INFO">
+    <appender-ref ref="ASYNC_CONSOLE"/>
+</root>
