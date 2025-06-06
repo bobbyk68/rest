@@ -1,0 +1,10 @@
+private static String toLocalPath(String path) {
+    return Arrays.stream(path.split("/"))
+        .filter(Predicate.not(String::isBlank))
+        .map(part -> {
+            String tag = part.replaceAll("\.*?\", "");                     // remove [n]
+            String index = part.contains("[") ? part.substring(part.indexOf("[")) : ""; // extract [n]
+            return "*[local-name()='" + tag.replaceAll(".*:", "") + "']" + index;
+        })
+        .collect(Collectors.joining("/"));
+}
