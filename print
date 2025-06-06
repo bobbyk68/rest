@@ -1,0 +1,15 @@
+private static void printXml(Document doc) {
+    try {
+        String result = new org.dom4j.io.XMLWriter(
+                new java.io.StringWriter(),
+                org.dom4j.io.OutputFormat.createPrettyPrint()
+        ).write(doc); // This will return null but write to StringWriter, so do this instead:
+
+        org.dom4j.io.StringWriter writer = new org.dom4j.io.StringWriter();
+        new org.dom4j.io.XMLWriter(writer, org.dom4j.io.OutputFormat.createPrettyPrint()).write(doc);
+        System.out.println(writer.toString());
+
+    } catch (Exception e) {
+        throw new RuntimeException("Failed to print XML", e);
+    }
+}
