@@ -1,0 +1,71 @@
+import io.cucumber.java.en.When;
+import io.cucumber.datatable.DataTable;
+import org.dom4j.*;
+import org.dom4j.io.SAXReader;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+public class XmlSteps {
+
+    private final Element rootElement;
+
+    public XmlSteps() {
+        // Load your XML document here (can be changed to InputStream/String etc.)
+        Document doc = loadXml("src/test/resources/person.xml");
+        this.rootElement = doc.getRootElement();
+    }
+
+    @When("the following XML elements are updated:")
+    public void updateXmlElements(DataTable table) {
+        for (Map<String, String> row : table.asMaps()) {
+            updateElementText(rootElement, row.get("path"), row.get("value"));
+        }
+    }
+
+    @When("the following XML attributes are updated:")
+    public void updateXmlAttributes(DataTable table) {
+        for (Map<String, String> row : table.asMaps()) {
+            updateAttribute(rootElement, row.get("path"), row.get("attribute"), row.get("value"));
+        }
+    }
+
+    // --- XML Editor Methods ---
+
+    private static int updateElementText(Element parent, String path, String newValue) {
+        List<Node> nodes = parent.selectNodes(toLocalPath(path));
+        for (Node node : nodes) {
+            node.setText(newValue);
+        }
+        return nodes.size();
+    }
+
+    private static int updateAttribute(Element parent, String path, String attr, String newValue) {
+        List<Node> nodes = parent.selectNodes(toLocalPath(path));
+        int count = 0;
+        for (Node node : nodes) {
+            if (node instanceof Element e) {
+                e.addAttribute(attr, newValue);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static String toLocalPath(String path) {
+        return Arrays.stream(path.split("/"))
+            .filter(s -> !s.isBlank())
+            .map(s -> "*[local-name()='" + s.replaceAll(".*:", "") + "']")
+            .collect(Collectors.joining("/"));
+    }
+
+    private static Document loadXml(String filePath) {
+        try {
+            return new SAXReader().read(new File(filePath));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load XML file", e);
+        }
+    }
+}
