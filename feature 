@@ -1,0 +1,13 @@
+Feature: Modify XML content using relative paths
+
+  Scenario: Update element text and attribute values
+
+    When the following XML elements are updated:
+      | path                     | value    |
+      | Response/additionalUnits | 999.99   |
+      | Response/notes           | updated  |
+
+    And the following XML attributes are updated:
+      | path                     | attribute   | value |
+      | Response/additionalUnits | unitType    | XYZ   |
+      | Response/meta            | version     | 2.0   |
