@@ -1,0 +1,51 @@
+import io.cucumber.java.en.*;
+import io.cucumber.datatable.DataTable;
+import org.dom4j.Document;
+
+import java.util.List;
+import java.util.Map;
+
+public class XmlStepDefinitions {
+
+    private Document document;
+
+    @Given("I load the XML from {string}")
+    public void i_load_the_xml(String filePath) throws Exception {
+        document = XmlHelper.loadXml(filePath);
+    }
+
+    @When("I update the following tag text values")
+    public void i_update_tag_text(DataTable table) {
+        List<Map<String, String>> rows = table.asMaps();
+        for (Map<String, String> row : rows) {
+            XmlHelper.updateTagText(document, row.get("path"), row.get("newValue"));
+        }
+    }
+
+    @And("I update the following attributes")
+    public void i_update_attributes(DataTable table) {
+        List<Map<String, String>> rows = table.asMaps();
+        for (Map<String, String> row : rows) {
+            XmlHelper.updateAttribute(document, row.get("path"), row.get("attribute"), row.get("newValue"));
+        }
+    }
+
+    @And("I remove the following tags")
+    public void i_remove_tags(DataTable table) {
+        for (Map<String, String> row : table.asMaps()) {
+            XmlHelper.removeTag(document, row.get("path"));
+        }
+    }
+
+    @And("I remove the following attributes")
+    public void i_remove_attributes(DataTable table) {
+        for (Map<String, String> row : table.asMaps()) {
+            XmlHelper.removeAttribute(document, row.get("path"), row.get("attribute"));
+        }
+    }
+
+    @Then("I save the XML to {string}")
+    public void i_save_the_xml(String filePath) throws Exception {
+        XmlHelper.saveXml(document, filePath);
+    }
+}
