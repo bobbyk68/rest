@@ -1,0 +1,16 @@
+Document doc = XmlHelper.loadXml("input.xml");
+
+// Read
+String root = XmlHelper.getRootElementName(doc);
+String price = XmlHelper.getElementText(doc, "order/items/item[1]/price");
+
+// Update
+XmlHelper.updateTagText(doc, "order/items/item[1]/name", "Green Apple");
+XmlHelper.updateAttribute(doc, "order/items/item[1]", "sku", "NEW-001");
+
+// Remove
+XmlHelper.removeTag(doc, "order/items/item[2]/price");
+XmlHelper.removeAttribute(doc, "order/items/item[2]", "sku");
+
+// Save changes
+XmlHelper.saveXml(doc, "output.xml");
