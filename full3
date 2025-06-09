@@ -1,0 +1,24 @@
+Feature: XML Update and Removal
+
+  Scenario: Update and remove nodes and attributes
+    Given I load the XML from "input.xml"
+
+    When I update the following tag text values
+      | path                          | newValue     |
+      | order/customer/name           | Alice Smith  |
+      | order/items/item[1]/price     | 2.99         |
+
+    And I update the following attributes
+      | path                       | attribute | newValue   |
+      | order/items/item[1]       | sku       | X123       |
+      | order/items/item[2]       | sku       | X456       |
+
+    And I remove the following tags
+      | path                          |
+      | order/items/item[2]/price     |
+
+    And I remove the following attributes
+      | path                       | attribute |
+      | order/items/item[2]       | sku       |
+
+    Then I save the XML to "output.xml"
