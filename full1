@@ -1,0 +1,106 @@
+import org.dom4j.*;
+import org.dom4j.io.SAXReader;
+import org.dom4j.io.XMLWriter;
+import org.dom4j.io.OutputFormat;
+
+import java.io.File;
+import java.io.FileWriter;
+
+public class XmlHelper {
+
+    // Load XML file into Document
+    public static Document loadXml(String filePath) throws Exception {
+        SAXReader reader = new SAXReader();
+        return reader.read(new File(filePath));
+    }
+
+    // Save Document back to file
+    public static void saveXml(Document document, String filePath) throws Exception {
+        OutputFormat format = OutputFormat.createPrettyPrint();
+        try (XMLWriter writer = new XMLWriter(new FileWriter(filePath), format)) {
+            writer.write(document);
+        }
+    }
+
+    // Get root element name
+    public static String getRootElementName(Document doc) {
+        return doc.getRootElement().getName();
+    }
+
+    // Get text from tag
+    public static String getElementText(Document doc, String path) {
+        Node node = doc.selectSingleNode(toLocalPath(path));
+        return node != null ? node.getText() : null;
+    }
+
+    // Get attribute value
+    public static String getAttributeValue(Document doc, String elementPath, String attributeName) {
+        Node node = doc.selectSingleNode(toLocalPath(elementPath));
+        if (node instanceof Element element) {
+            Attribute attr = element.attribute(attributeName);
+            return attr != null ? attr.getValue() : null;
+        }
+        return null;
+    }
+
+    // Update tag text
+    public static boolean updateTagText(Document doc, String path, String newText) {
+        Node node = doc.selectSingleNode(toLocalPath(path));
+        if (node != null) {
+            node.setText(newText);
+            return true;
+        }
+        return false;
+    }
+
+    // Update attribute value
+    public static boolean updateAttribute(Document doc, String elementPath, String attributeName, String newValue) {
+        Node node = doc.selectSingleNode(toLocalPath(elementPath));
+        if (node instanceof Element element) {
+            element.addAttribute(attributeName, newValue);
+            return true;
+        }
+        return false;
+    }
+
+    // Remove tag (element)
+    public static boolean removeTag(Document doc, String path) {
+        Node node = doc.selectSingleNode(toLocalPath(path));
+        if (node != null) {
+            node.detach();
+            return true;
+        }
+        return false;
+    }
+
+    // Remove attribute
+    public static boolean removeAttribute(Document doc, String elementPath, String attributeName) {
+        Node node = doc.selectSingleNode(toLocalPath(elementPath));
+        if (node instanceof Element element) {
+            Attribute attr = element.attribute(attributeName);
+            if (attr != null) {
+                element.remove(attr);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Search using local-name-safe XPath
+    public static Node searchNodeLocal(Document doc, String path) {
+        return doc.selectSingleNode(toLocalPath(path));
+    }
+
+    // Convert normal XPath to namespace-agnostic XPath
+    public static String toLocalPath(String path) {
+        String[] parts = path.split("/");
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            String index = part.contains("[") ? part.substring(part.indexOf("[")) : "";
+            String tag = part.replaceAll("\.*?\", "");
+            sb.append("/*[local-name()='").append(tag.replaceAll(".*:", "")).append("']").append(index);
+        }
+        return sb.toString();
+    }
+}
