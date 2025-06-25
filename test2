@@ -1,0 +1,26 @@
+@Test
+void testFaultDetailString_handlesTransformerError_returnsEmpty() throws Exception {
+    // Arrange
+    SoapMessage mockSoapMessage = mock(SoapMessage.class);
+    SoapBody mockSoapBody = mock(SoapBody.class);
+    SoapFaultDetail mockFaultDetail = mock(SoapFaultDetail.class);
+    SoapFaultDetailElement mockDetailElement = mock(SoapFaultDetailElement.class);
+    Source mockSource = mock(Source.class);
+
+    when(mockSoapMessage.getSoapBody()).thenReturn(mockSoapBody);
+    when(mockSoapBody.getFaultDetail()).thenReturn(mockFaultDetail);
+    when(mockFaultDetail.getDetailEntries())
+        .thenReturn(Collections.singletonList(mockDetailElement).iterator());
+    when(mockDetailElement.getSource()).thenReturn(mockSource);
+
+    // Spy and throw exception on convertSourceToString
+    SoapFaultHelper helper = Mockito.spy(new SoapFaultHelper(mockSoapMessage));
+    doThrow(new TransformerFactoryConfigurationError(new RuntimeException("forced")))
+        .when(helper).convertSourceToString(any());
+
+    // Act
+    String result = helper.faultDetailString();
+
+    // Assert
+    assertEquals("", result);
+}
