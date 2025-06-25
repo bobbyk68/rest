@@ -1,0 +1,48 @@
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.ws.soap.SoapBody;
+import org.springframework.ws.soap.SoapFaultDetail;
+import org.springframework.ws.soap.SoapFaultDetailElement;
+import org.springframework.ws.soap.SoapMessage;
+import org.springframework.ws.WebServiceMessage;
+
+import javax.xml.transform.Source;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import java.util.Collections;
+import java.util.Iterator;
+
+public class SoapFaultHelperTest {
+
+    @Test
+    void testFaultDetailString_handlesTransformerError_returnsEmpty() {
+        // Arrange
+        WebServiceMessage mockWebServiceMessage = mock(WebServiceMessage.class);
+        SoapMessage mockSoapMessage = mock(SoapMessage.class);
+        SoapBody mockSoapBody = mock(SoapBody.class);
+        SoapFaultDetail mockFaultDetail = mock(SoapFaultDetail.class);
+        SoapFaultDetailElement mockDetailElement = mock(SoapFaultDetailElement.class);
+        Source mockSource = mock(Source.class);
+
+        // Link mocks
+        when(mockWebServiceMessage instanceof SoapMessage).thenReturn(true);
+        when((SoapMessage) mockWebServiceMessage).thenReturn(mockSoapMessage);
+        when(mockSoapMessage.getSoapBody()).thenReturn(mockSoapBody);
+        when(mockSoapBody.getFaultDetail()).thenReturn(mockFaultDetail);
+        when(mockFaultDetail.getDetailEntries()).thenReturn(Collections.singletonList(mockDetailElement).iterator());
+        when(mockDetailElement.getSource()).thenReturn(mockSource);
+
+        // Spy to throw TransformerException from convertSourceToString
+        SoapFaultHelper helper = Mockito.spy(new SoapFaultHelper((SoapMessage) mockWebServiceMessage));
+        doThrow(new TransformerFactoryConfigurationError(new RuntimeException("Forced failure")))
+            .when(helper).convertSourceToString(any(Source.class));
+
+        // Act
+        String result = helper.faultDetailString();
+
+        // Assert
+        assertEquals("", result); // StringUtils.EMPTY is "" under the hood
+    }
+}
