@@ -1,0 +1,27 @@
+public enum SaveOrUpdateResult {
+    CREATED(HttpStatus.CREATED, "New entity created"),
+    UPDATED(HttpStatus.OK, "Entity updated");
+
+    private final HttpStatus status;
+    private final String message;
+
+    SaveOrUpdateResult(HttpStatus status, String message) {
+        this.status = status;
+        this.message = message;
+    }
+
+    public HttpStatus getStatus() {
+        return status;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public ResponseEntity<String> toResponseEntity(URI location) {
+        if (this == CREATED) {
+            return ResponseEntity.status(status).location(location).body(message);
+        }
+        return ResponseEntity.status(status).body(message);
+    }
+}
