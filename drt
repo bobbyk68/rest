@@ -1,0 +1,48 @@
+package com.example.drools
+
+import java.util.Map;
+dialect "java"
+template header operator, number1, number2, expectedResult
+
+rule "Calculate_@{operator}_@{number1}_@{number2}"
+    when
+        $m : Map(
+            this["operator"].equals("@{operator}"),
+            (this["calculated"] == null || ((Boolean)this["calculated"]) == false),
+            this["number1"] != null,
+            this["number2"] != null
+            // Specific condition for division by zero
+            @{if operator.equals("/")}
+                , ((Number)this["number2"]).doubleValue() != 0
+            @{end}
+        )
+    then
+        double val1 = ((Number)$m.get("number1")).doubleValue();
+        double val2 = ((Number)$m.get("number2")).doubleValue();
+        double res;
+
+        switch ("@{operator}") {
+            case "+":
+                res = val1 + val2;
+                break;
+            case "-":
+                res = val1 - val2;
+                break;
+            case "*":
+                res = val1 * val2;
+                break;
+            case "/":
+                res = val1 / val2;
+                break;
+            case "%":
+                res = val1 % val2;
+                break;
+            default:
+                // Should not happen if data is clean, or handle error
+                return;
+        }
+
+        $m.put("result", res);
+        $m.put("calculated", true);
+        update($m);
+end
